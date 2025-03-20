@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  bot_db:
+    image: postgres:14.1-alpine
+    container_name: postgres_bot
+    restart: always
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data_telebot:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "${DB_USER}", "-d", "${DB_NAME}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  bot_app:
+    build: .
+    container_name: telegram_bot
+    restart: always
+    depends_on:
+      bot_db:
+        condition: service_healthy
+    env_file: .env
+    environment:
+      BOT_TOKEN: ${BOT_TOKEN}
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_HOST: bot_db
+      DB_PORT: 5432
+
+volumes:
+  postgres_data_telebot:
